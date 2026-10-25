@@ -110,7 +110,7 @@ function wall3D(g,w){
  const mesh=box(g,mx,1.35,mz,len,2.7,.14,'#edeae2');
  if(Math.abs(w.x2-w.x1)<.01)mesh.rotation.y=Math.PI/2;
 }
-\nfunction draw(){extent();const w=cv.clientWidth,h=cv.clientHeight;ctx.clearRect(0,0,w,h);ctx.lineWidth=1;ctx.strokeStyle='#edf0f3';for(let x=ox;x<w;x+=scale*.5){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,h);ctx.stroke()}for(let y=oy;y<h;y+=scale*.5){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(w,y);ctx.stroke()}
+function draw(){extent();const w=cv.clientWidth,h=cv.clientHeight;ctx.clearRect(0,0,w,h);ctx.lineWidth=1;ctx.strokeStyle='#edf0f3';for(let x=ox;x<w;x+=scale*.5){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,h);ctx.stroke()}for(let y=oy;y<h;y+=scale*.5){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(w,y);ctx.stroke()}
 rooms.forEach(r=>{const x=ox+r.x*scale,y=oy+r.y*scale,ww=r.w*scale,hh=r.h*scale,bad=rooms.some(t=>overlap(r,t));ctx.fillStyle=colors[r.type]||'#ddd';ctx.fillRect(x,y,ww,hh);ctx.strokeStyle=bad?'#c43e50':r.id===selected?'#215ed1':'#556c79';ctx.lineWidth=r.id===selected?3:2;ctx.strokeRect(x,y,ww,hh);ctx.fillStyle='#26384a';ctx.textAlign='center';ctx.font='bold 13px system-ui';ctx.fillText(r.name,x+ww/2,y+hh/2-2,Math.max(30,ww-8));ctx.font='11px system-ui';ctx.fillText((r.w*r.h/3.3058).toFixed(1)+'坪',x+ww/2,y+hh/2+16);if(r.id===selected){ctx.fillStyle='#216de3';ctx.fillRect(x+ww-11,y+hh-11,11,11)}});
 // Render a sliding partition on the east side of the flexible studio, plus the kitchen-to-garage access.
 const studio=rooms.find(r=>r.type==='studio');
