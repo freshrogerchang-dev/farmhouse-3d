@@ -1,34 +1,37 @@
 const ORIGIN = "https://freshrogerchang-dev.github.io";
-const cors = {"Access-Control-Allow-Origin":ORIGIN,"Access-Control-Allow-Methods":"POST, OPTIONS","Access-Control-Allow-Headers":"Content-Type","Vary":"Origin"};
-const answer=(data,status=200)=>new Response(JSON.stringify(data),{status,headers:{...cors,"Content-Type":"application/json","Cache-Control":"no-store"}});
+const MODEL = "@cf/runwayml/stable-diffusion-v1-5-img2img";
+const cors = {"Access-Control-Allow-Origin": ORIGIN,"Access-Control-Allow-Methods":"GET, POST, OPTIONS","Access-Control-Allow-Headers":"Content-Type, X-Render-Key","Vary":"Origin"};
+const reply=(body,status=200)=>new Response(JSON.stringify(body),{status,headers:{...cors,"Content-Type":"application/json","Cache-Control":"no-store"}});
+const rooms=new Set(["客廳與餐廳","主臥室","廚房","衛浴","農舍外觀"]);
+const styles=new Set(["日式無印","現代簡約","北歐木質","現代輕奢","台灣鄉村農舍"]);
+const lights=new Set(["白天自然光","黃昏暖光","夜間燈光"]);
+async function imageBase64(stream) {
+  const data=new Uint8Array(await new Response(stream).arrayBuffer());
+  if(data.byteLength>8_000_000)throw new Error("Generated image exceeds output limit");
+  let parts=[];for(let i=0;i<data.length;i+=8192)parts.push(String.fromCharCode(...data.subarray(i,i+8192)));
+  return btoa(parts.join(""));
+}
 export default {
- async fetch(request,env){
-  if(request.method==="OPTIONS") return new Response(null,{headers:cors});
-  if(new URL(request.url).pathname!=="/render" || request.method!=="POST")return answer({error:"POST /render only"},404);
-  if(request.headers.get("Origin")!==ORIGIN)return answer({error:"Origin not allowed"},403);
-  if(!env.OPENAI_API_KEY)return answer({error:"OPENAI_API_KEY secret is missing"},503);
-  const len=Number(request.headers.get("content-length")||0);
-  if(len>5_500_000)return answer({error:"Image request exceeds 5.5 MB"},413);
-  let input;
-  try{input=await request.json()}catch{return answer({error:"Invalid JSON"},400)}
-  const {image,room,style,lighting}=input||{};
-  if(typeof image!=="string"||!/^data:image\/png;base64,[A-Za-z0-9+/=]+$/.test(image)||image.length>5_500_000)return answer({error:"Provide a PNG data URI under 5.5 MB"},400);
-  if([room,style,lighting].some(v=>typeof v!=="string"||v.length>80))return answer({error:"Invalid room/style/lighting"},400);
-  const prompt=`Edit this exact image of an architectural 3D home into a realistic interior design photograph. Location: ${room}. Style: ${style}. Lighting: ${lighting}. Keep the camera position, perspective, spatial layout, wall boundaries, openings and window/door placement as close to the source image as possible. Use credible real-world furniture proportions and materials. Do not add extra rooms or change the building envelope. No text, no floor plan overlay. High quality architectural photography. This is a visualization, not a construction document.`;
-  try{
-   const imageBytes=Uint8Array.from(atob(image.slice("data:image/png;base64,".length)),ch=>ch.charCodeAt(0));
-   const form=new FormData();
-   form.append("model","gpt-image-2.5-flare");
-   form.append("image",new File([imageBytes],"farmhouse-camera.png",{type:"image/png"}));
-   form.append("prompt",prompt);
-   form.append("quality","medium");
-   form.append("size","1024x1024");
-   const r=await fetch("https://api.openai.com/v1/images/edits",{method:"POST",headers:{Authorization:"Bearer "+env.OPENAI_API_KEY},body:form});
-   const body=await r.json();
-   if(!r.ok)return answer({error:body.error?.message||"AI provider request failed"},r.status>=500?502:400);
-   const b64=body.data?.[0]?.b64_json;
-   if(!b64)return answer({error:"AI provider returned no image"},502);
-   return answer({image:"data:image/png;base64,"+b64});
-  }catch(err){return answer({error:"Image generation service error"},502)}
+ async fetch(req,env){
+  const url=new URL(req.url);
+  if(req.method==="OPTIONS")return new Response(null,{status:204,headers:cors});
+  if(url.pathname==="/health"&&req.method==="GET")return reply({ok:true,provider:"Cloudflare Workers AI",model:MODEL,configured:!!env.RENDER_ACCESS_CODE});
+  if(url.pathname!=="/render"||req.method!=="POST")return reply({error:"Not found"},404);
+  if(req.headers.get("Origin")!==ORIGIN)return reply({error:"Unapproved website origin"},403);
+  if(!env.RENDER_ACCESS_CODE||env.RENDER_ACCESS_CODE.length<16)return reply({error:"Render service locked: set a 16+ character RENDER_ACCESS_CODE Worker secret."},503);
+  if(req.headers.get("X-Render-Key")!==env.RENDER_ACCESS_CODE)return reply({error:"Incorrect rendering access code"},401);
+  const length=Number(req.headers.get("Content-Length")||0);
+  if(length>2_900_000)return reply({error:"Image request too large"},413);
+  let input;try{input=await req.json()}catch{return reply({error:"Invalid JSON"},400)}
+  const {room,style,lighting,image}=input||{};
+  if(!rooms.has(room)||!styles.has(style)||!lights.has(lighting))return reply({error:"Invalid room, style or lighting"},400);
+  if(typeof image!=="string"||image.length>2_900_000||!/^data:image\/png;base64,[A-Za-z0-9+/=]+$/.test(image))return reply({error:"Send PNG screenshot no larger than 2.9MB"},400);
+  if(!env.AI)return reply({error:"AI binding is not deployed"},503);
+  const prompt=`Photorealistic architectural interior photograph, transform the provided 3D reference image, room ${room}, ${style} interior design, ${lighting}. Preserve the reference camera position, architecture, furniture placement, doors and windows as closely as possible. Realistic materials, high quality details, natural illumination, no text or watermarks.`;
+  try {
+    const out=await env.AI.run(MODEL,{image_b64:image.slice(image.indexOf(",")+1),prompt,negative_prompt:"text, watermark, extra walls, changed windows, distorted doors, extra rooms, cartoon, diagram",strength:0.54,guidance:7.5,num_steps:16});
+    if(!out||typeof out.getReader!=="function")throw new Error("Model returned an unexpected response");
+    return reply({image:"data:image/png;base64,"+await imageBase64(out),model:MODEL});
+  }catch(e){return reply({error:"Workers AI render failed",detail:String(e?.message||e).slice(0,300)},502)}
  }
 };
