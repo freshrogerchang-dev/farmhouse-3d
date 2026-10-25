@@ -27,11 +27,11 @@ export default {
   if(!rooms.has(room)||!styles.has(style)||!lights.has(lighting))return reply({error:"Invalid room, style or lighting"},400);
   if(typeof image!=="string"||image.length>2_900_000||!/^data:image\/png;base64,[A-Za-z0-9+/=]+$/.test(image))return reply({error:"Send PNG screenshot no larger than 2.9MB"},400);
   if(!env.AI)return reply({error:"AI binding is not deployed"},503);
-  const prompt=`Photorealistic architectural interior photograph, transform the provided 3D reference image, room ${room}, ${style} interior design, ${lighting}. Preserve the reference camera position, architecture, furniture placement, doors and windows as closely as possible. Realistic materials, high quality details, natural illumination, no text or watermarks.`;
+  const prompt=`Photorealistic architectural interior photograph, transform the provided 3D reference image, room ${room}, ${style} interior design, ${lighting}. STRICT IMAGE-TO-IMAGE EDIT of the exact provided screenshot. The screenshot defines the complete visible field of view and the frame boundaries. Do not zoom out, pan, widen field of view, expand the room, or show anything outside the supplied image. Keep the original camera perspective, number and position of visible furniture, doors, windows and walls. Do not introduce any new side objects, surrounding decorations, extra rooms, plants or furniture. Only replace flat 3D materials with realistic surface textures and improve the existing lighting. Photorealistic materials and shadows; no text or watermarks.`;
   try {
     const bytes=Uint8Array.from(atob(image.slice(image.indexOf(",")+1)),c=>c.charCodeAt(0));
     const form=new FormData();
-    form.append("prompt",prompt+" Use image 0 as the reference image and preserve the depicted room.");
+    form.append("prompt",prompt+" Use image 0 as a strict composition and geometry reference. Keep the same crop and only the objects visible in image 0; do not invent content beyond its edges.");
     form.append("input_image_0",new Blob([bytes],{type:"image/png"}),"room.png");
     form.append("width","1024");form.append("height","768");
     const packed=new Response(form);
