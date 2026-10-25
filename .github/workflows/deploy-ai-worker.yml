@@ -1,0 +1,21 @@
+name: Deploy AI Render Worker
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - "ai-worker/**"
+      - ".github/workflows/deploy-ai-worker.yml"
+permissions:
+  contents: read
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Deploy Cloudflare Worker
+        uses: cloudflare/wrangler-action@v4
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ID }}
+          workingDirectory: ai-worker
+          command: deploy
