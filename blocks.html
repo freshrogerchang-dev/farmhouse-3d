@@ -117,7 +117,8 @@ const studio=rooms.find(r=>r.type==='studio');
 if(studio){const px=ox+(studio.x+studio.w)*scale,py=oy+(studio.y+studio.h*.22)*scale,ph=studio.h*.56*scale;ctx.lineWidth=slideClosed?7:4;ctx.strokeStyle=slideClosed?'#597887':'#52a4b4';ctx.setLineDash(slideClosed?[]:[9,6]);ctx.beginPath();ctx.moveTo(px,py);ctx.lineTo(px,py+ph);ctx.stroke();ctx.setLineDash([]);ctx.font='11px system-ui';ctx.textAlign='left';ctx.fillStyle='#397486';ctx.fillText(slideClosed?'拉門關閉':'拉門收起',px+6,py+12)}
 const kitchen=rooms.find(r=>r.type==='kitchen'),garage=rooms.find(r=>r.type==='garage');
 if(kitchen&&garage){ctx.fillStyle='#217b57';ctx.font='bold 11px system-ui';ctx.fillText('↗ 車庫連通門',ox+(kitchen.x+kitchen.w*.44)*scale,oy+(kitchen.y+kitchen.h*.78)*scale)}
-renderEdges2D();\nconst problems=[];for(const r of rooms){if(rooms.some(t=>overlap(r,t)))problems.push(r.name+' 與其他房間重疊');if(r.w<2||r.h<2)problems.push(r.name+' 邊長小於 2 公尺');if(r.type==='garage'&&(r.w<3.3||r.h<5.4))problems.push('車庫可能不足以停放一般轎車')}const warning=$('warnings');warning.textContent=problems.length?'⚠️ '+[...new Set(problems)].slice(0,4).join('；'):'✓ 目前沒有房間重疊或明顯過窄問題（不代表符合建築法規）';
+renderEdges2D();
+const problems=[];for(const r of rooms){if(rooms.some(t=>overlap(r,t)))problems.push(r.name+' 與其他房間重疊');if(r.w<2||r.h<2)problems.push(r.name+' 邊長小於 2 公尺');if(r.type==='garage'&&(r.w<3.3||r.h<5.4))problems.push('車庫可能不足以停放一般轎車')}const warning=$('warnings');warning.textContent=problems.length?'⚠️ '+[...new Set(problems)].slice(0,4).join('；'):'✓ 目前沒有房間重疊或明顯過窄問題（不代表符合建築法規）';
 const indoor=rooms.filter(r=>r.type!=='garage'&&r.type!=='utility').reduce((sum,r)=>sum+r.w*r.h,0);$('area').textContent='室內房間方塊合計約 '+(indoor/3.3058).toFixed(1)+' 坪（重疊未扣除）';if(shown3D)build3D()}
 function pos(e){const b=cv.getBoundingClientRect();return {x:(e.clientX-b.left-ox)/scale,y:(e.clientY-b.top-oy)/scale}}
 function find(p){return [...rooms].reverse().find(r=>p.x>=r.x&&p.x<=r.x+r.w&&p.y>=r.y&&p.y<=r.y+r.h)}
