@@ -41,12 +41,12 @@ function magnetic(r){
 function overlap(a,b){return a.id!==b.id&&a.x<b.x+b.w-.001&&a.x+a.w>b.x+.001&&a.y<b.y+b.h-.001&&a.y+a.h>b.y+.001}
 
 function fixtureFor(w){return fixtures.find(f=>Math.abs(f.x1-w.x1)<.06&&Math.abs(f.y1-w.y1)<.06&&Math.abs(f.x2-w.x2)<.06&&Math.abs(f.y2-w.y2)<.06)}
-function nearestWall(p){let best=null,dist=.32;for(const w of alignedEdges()){if(w.kind==='opening')continue;const dx=w.x2-w.x1,dy=w.y2-w.y1,len2=dx*dx+dy*dy;if(len2<.5)continue;const t=Math.max(0,Math.min(1,((p.x-w.x1)*dx+(p.y-w.y1)*dy)/len2));const x=w.x1+t*dx,y=w.y1+t*dy,d=Math.hypot(x-p.x,y-p.y);if(d<dist){dist=d;best=w}}return best}
+function nearestWall(p){let best=null,dist=.32;for(const w of rawEdges()){if(w.kind==='opening')continue;const dx=w.x2-w.x1,dy=w.y2-w.y1,len2=dx*dx+dy*dy;if(len2<.5)continue;const t=Math.max(0,Math.min(1,((p.x-w.x1)*dx+(p.y-w.y1)*dy)/len2));const x=w.x1+t*dx,y=w.y1+t*dy,d=Math.hypot(x-p.x,y-p.y);if(d<dist){dist=d;best=w}}return best}
 const fsize={sofa:[2.3,.9],table:[1.8,1.1],bed:[1.8,2],desk:[1.4,.7],fridge:[.8,.8]};
 function furnitureHit(p){return [...furniture].reverse().find(f=>Math.abs(p.x-f.x)<fsize[f.type][0]/2&&Math.abs(p.y-f.y)<fsize[f.type][1]/2)}
 function furnitureWarnings(){const issues=[];for(const f of furniture){const [w,h]=fsize[f.type],owner=rooms.find(r=>f.x-w/2>=r.x+.08&&f.x+w/2<=r.x+r.w-.08&&f.y-h/2>=r.y+.08&&f.y+h/2<=r.y+r.h-.08);if(!owner)issues.push(f.type+' 超出房間');for(const o of furniture)if(o!==f&&Math.abs(f.x-o.x)<(w+fsize[o.type][0])/2+.1&&Math.abs(f.y-o.y)<(h+fsize[o.type][1])/2+.1)issues.push('家具碰撞：'+f.type+' / '+o.type)}return [...new Set(issues)]}
 function wallKind(w){const f=fixtureFor(w);return f?f.kind:w.kind}
-function alignedEdges(){
+function rawEdges(){
  const walls=[];
  const add=(x1,y1,x2,y2,kind='wall')=>walls.push({x1,y1,x2,y2,kind});
  const epsilon=.035;
@@ -81,7 +81,19 @@ function alignedEdges(){
    }
   }
  }
- return walls.map(w=>({...w,kind:wallKind(w)}));
+ return walls;
+}
+function alignedEdges(){return rawEdges().flatMap(w=>{
+ const f=fixtureFor(w);if(!f)return [w];
+ const len=Math.hypot(w.x2-w.x1,w.y2-w.y1);
+ if(len<.9)return [w];
+ const width=Math.min(f.kind==='window'?1.45:.95,len*.65);
+ const t=Math.max(width/(2*len)+.05,Math.min(1-width/(2*len)-.05,Number.isFinite(f.t)?f.t:.5));
+ const a=t-width/(2*len),b=t+width/(2*len);
+ const pt=q=>[w.x1+(w.x2-w.x1)*q,w.y1+(w.y2-w.y1)*q];
+ const [ax,ay]=pt(a),[bx,by]=pt(b);
+ return [{...w,x2:ax,y2:ay,kind:'wall'},{x1:ax,y1:ay,x2:bx,y2:by,kind:f.kind},{...w,x1:bx,y1:by,kind:'wall'}];
+ });
 }
 function renderEdges2D(){
  for(const w of alignedEdges()){
@@ -141,5 +153,28 @@ function build3D(){if(!engine)return;const {scene}=engine;while(scene.children.l
 function start3D(){if(engine)return;let el=$('view');const scene=new THREE.Scene(),camera=new THREE.PerspectiveCamera(45,el.clientWidth/el.clientHeight,.1,200);camera.position.set(26,25,28);const renderer=new THREE.WebGLRenderer({antialias:true,preserveDrawingBuffer:true});renderer.setSize(el.clientWidth,el.clientHeight);renderer.setPixelRatio(Math.min(devicePixelRatio,2));el.appendChild(renderer.domElement);const controls=new OrbitControls(camera,renderer.domElement);controls.target.set(9,0,7);controls.update();engine={scene,camera,renderer,controls};build3D();function animate(){requestAnimationFrame(animate);if(shown3D){controls.update();renderer.render(scene,camera)}}animate();new ResizeObserver(()=>{if(el.clientWidth){camera.aspect=el.clientWidth/el.clientHeight;camera.updateProjectionMatrix();renderer.setSize(el.clientWidth,el.clientHeight)}}).observe(el)}
 $('three').onclick=()=>{shown3D=true;$('plan').style.display='none';$('view').style.display='block';$('three').className='primary';$('two').className='';start3D();draw()};
 $('two').onclick=()=>{shown3D=false;$('plan').style.display='block';$('view').style.display='none';$('two').className='primary';$('three').className='';resize()};
+$('ai3d').onclick=async()=>{
+ const key=$('aiKeyB3').value.trim();if(!key){$('aiStatusB3').textContent='請先輸入 Worker 存取密碼';return}
+ const btn=$('ai3d');btn.disabled=true;$('aiStatusB3').textContent='擷取目前 3D 鏡頭並生成寫實圖…';
+ try{
+   if(!engine)start3D();
+   const {renderer,scene,camera}=engine;
+   renderer.render(scene,camera);
+   const imageSource=renderer.domElement;
+   const c=document.createElement('canvas'),factor=Math.min(1,512/Math.max(imageSource.width,imageSource.height));
+   c.width=Math.max(128,Math.floor(imageSource.width*factor));c.height=Math.max(128,Math.floor(imageSource.height*factor));
+   c.getContext('2d').drawImage(imageSource,0,0,c.width,c.height);
+   const room=rooms.some(r=>r.type==='garage')?'農舍外觀':'客廳與餐廳';
+   const response=await fetch('https://farmhouse-ai-render.freshrogerchang.workers.dev/render',{
+     method:'POST',headers:{'Content-Type':'application/json','X-Render-Key':key},
+     body:JSON.stringify({image:c.toDataURL('image/png'),room,style:$('aiStyleB3').value,lighting:'白天自然光',realism:'balanced'})
+   });
+   const data=await response.json();if(!response.ok)throw Error(data.detail||data.error||'HTTP '+response.status);
+   if(!/^data:image\/(png|jpeg|webp);base64,/.test(data.image||''))throw Error('模型沒有回傳有效圖片');
+   $('aiResultB3').src=data.image;$('aiResultB3').style.display='block';
+   $('aiDownloadB3').href=data.image;$('aiDownloadB3').style.display='inline-block';
+   $('aiStatusB3').textContent='AI 渲染完成。車庫辨識仍可能不精確。';
+ }catch(e){$('aiStatusB3').textContent='AI 渲染失敗：'+e.message}finally{btn.disabled=false}
+};
 window.addEventListener('resize',resize);resize();
 </script></body></html>
