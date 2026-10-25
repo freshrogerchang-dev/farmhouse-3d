@@ -1,13 +1,13 @@
-<!doctype html><html lang="zh-Hant"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>農舍房間積木編輯器 B1</title><style>
+<!doctype html><html lang="zh-Hant"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>農舍房間積木編輯器 B2</title><style>
 *{box-sizing:border-box}body{margin:0;font-family:system-ui,"Noto Sans TC",sans-serif;background:#eef2f5;color:#233042}header{padding:16px 20px;background:white;display:flex;justify-content:space-between;gap:12px;align-items:center;flex-wrap:wrap}header h2{margin:0;font-size:20px}main{display:grid;grid-template-columns:245px 1fr;min-height:calc(100vh - 76px)}aside{padding:16px;background:white;border-right:1px solid #dce1e9}button,select{border:1px solid #c7d0d9;background:white;padding:11px;border-radius:9px;cursor:pointer;font:inherit}button:hover{background:#e9f3ff}.primary{background:#2463d9;color:white}aside button{width:100%;margin:4px 0;text-align:left}.stage{padding:15px;min-width:0}.bar{display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap}.panel{background:white;border:1px solid #dde3e9;border-radius:12px;overflow:hidden;position:relative}#plan{width:100%;height:580px;display:block;touch-action:none;cursor:grab;background:#fafcfd}#view{height:580px;display:none;background:#dfe9ef}.hint{font-size:13px;color:#68798a;line-height:1.7}.selected{outline:2px solid #367ce8}.tag{font-size:12px;background:#e1f1e7;border-radius:99px;padding:5px 8px}footer{font-size:12px;margin-top:10px;color:#75818e}@media(max-width:760px){main{grid-template-columns:1fr}aside{display:block;border-bottom:1px solid #ddd}#plan,#view{height:460px}.stage{padding:8px}}</style></head><body>
 <header><div><h2>🏡 農舍房間積木編輯器 <span class="tag">最新版格局 A</span></h2><div class="hint">左下主臥工作室拉門・雙臥共衛・右側第二衛浴・車庫接廚房</div></div><a href="./">返回原本 3D + AI 渲染網站</a></header>
-<main><aside><h3>新增積木</h3><div id="add"></div><hr><p class="hint">先點新增房間，再直接拖動；選取房間後拖曳<strong>右下角藍點</strong>改變大小。每格為 0.5 公尺，拖移會自動吸附。</p><button id="del">刪除選取房間</button><button id="rotate">旋轉房間 90°</button><button id="slider">主臥拉門：開啟</button><hr><button id="restore">載入最新格局 A</button><button id="save">匯出 JSON</button><button id="load">匯入 JSON</button><input hidden id="file" type="file" accept=".json,application/json"><p class="hint">圖塊可以任意組合；重疊會標紅提示。這是可編輯概念格局；主臥可用拉門切換開放／獨立。相鄰房間自動合併共用牆，主臥拉門與部分衛浴門、廚房通車庫門示意；開窗仍待細化，不代表施工圖。</p></aside><section class="stage"><div class="bar"><button id="two" class="primary">2D 積木</button><button id="three">3D 預覽</button><button id="shot">下載平面圖</button><span id="area" class="hint"></span></div><div class="panel"><canvas id="plan"></canvas><div id="view"></div></div><footer>保存在瀏覽器內的編輯進度僅供概念規劃；實際建築面積、開窗、車庫出入口與消防安全仍需專業設計確認。</footer></section></main>
+<main><aside><h3>新增積木</h3><div id="add"></div><hr><p class="hint">先點新增房間，再直接拖動；選取房間後拖曳<strong>右下角藍點</strong>改變大小。每格為 0.5 公尺，拖移會自動吸附。</p><button id="del">刪除選取房間</button><button id="rotate">旋轉房間 90°</button><button id="slider">主臥拉門：開啟</button><hr><h3>門窗編輯 B2</h3><button id="doorTool">🚪 放置門（選牆段）</button><button id="windowTool">🪟 放置窗（選外牆）</button><button id="eraseTool">🧽 移除自訂門窗</button><button id="moveTool">↔ 返回房間拖曳</button><p id="toolStatus" class="hint">門窗工具：選工具後點選 2D 牆面。</p><hr><button id="restore">載入最新格局 A</button><button id="save">匯出 JSON</button><button id="load">匯入 JSON</button><input hidden id="file" type="file" accept=".json,application/json"><p class="hint">圖塊可以任意組合；重疊會標紅提示。這是可編輯概念格局；主臥可用拉門切換開放／獨立。相鄰房間自動合併共用牆，主臥拉門與部分衛浴門、廚房通車庫門示意；開窗仍待細化，不代表施工圖。</p></aside><section class="stage"><div class="bar"><button id="two" class="primary">2D 積木</button><button id="three">3D 預覽</button><button id="shot">下載平面圖</button><span id="area" class="hint"></span></div><div class="panel"><canvas id="plan"></canvas><div id="view"></div></div><footer>保存在瀏覽器內的編輯進度僅供概念規劃；實際建築面積、開窗、車庫出入口與消防安全仍需專業設計確認。</footer></section></main>
 <script type="module">
 import * as THREE from 'https://esm.sh/three@0.175.0';
 import {OrbitControls} from 'https://esm.sh/three@0.175.0/examples/jsm/controls/OrbitControls.js';
 const $=id=>document.getElementById(id),grid=.5,colors={bed:'#b7d6c9',bath:'#bad8e8',living:'#ead8aa',kitchen:'#e5c6a8',dining:'#f1dfc2',studio:'#d5c4e7',garage:'#c7d2de',utility:'#d8e0b6'};
 const types=[['living','客廳',5,5],['bed','臥室',3.5,4],['studio','彈性主臥／工作室',4,4.5],['bath','衛浴',2.2,2.6],['kitchen','廚房',3.5,3.5],['dining','餐廳',3.5,3.5],['garage','車庫',3.8,6.5],['utility','洗衣／儲藏',2,3]];
-let rooms=[],selected=null,mode='move',anchor={},shown3D=false,engine=null,slideClosed=false;
+let rooms=[],selected=null,mode='move',anchor={},shown3D=false,engine=null,slideClosed=false,tool='move',fixtures=[];
 const example=()=>[
 {id:1,type:'bed',name:'臥室一',x:.5,y:.5,w:4,h:3.5},
 {id:2,type:'bed',name:'臥室二',x:.5,y:4,w:4,h:3.5},
@@ -20,8 +20,8 @@ const example=()=>[
 {id:9,type:'utility',name:'洗曬衣／儲藏',x:13.5,y:.5,w:4,h:2.5},
 {id:10,type:'garage',name:'車庫（連接廚房）',x:13.5,y:3,w:4,h:6.5}
 ];
-function saveLocal(){localStorage.setItem('farmhouse-blocks-v2',JSON.stringify(rooms))}
-function init(){try{let v=JSON.parse(localStorage.getItem('farmhouse-blocks-v2'));rooms=Array.isArray(v)&&v.length?v:example()}catch{rooms=example()}}
+function saveLocal(){localStorage.setItem('farmhouse-blocks-v2',JSON.stringify({rooms,fixtures,slideClosed}))}
+function init(){try{let v=JSON.parse(localStorage.getItem('farmhouse-blocks-v2'));rooms=Array.isArray(v)?v:Array.isArray(v?.rooms)?v.rooms:example();fixtures=Array.isArray(v?.fixtures)?v.fixtures:[];slideClosed=!!v?.slideClosed;if(!rooms.length)rooms=example()}catch{rooms=example()}}
 init();
 types.forEach(([type,label,w,h])=>{let b=document.createElement('button');b.textContent='+ '+label;b.onclick=()=>{let id=Date.now()+Math.random();rooms.push({id,type,name:label,x:6,y:6,w,h});selected=id;saveLocal();draw()};$('add').appendChild(b)});
 const cv=$('plan'),ctx=cv.getContext('2d');let scale=30,ox=16,oy=16;
@@ -40,6 +40,9 @@ function magnetic(r){
 }
 function overlap(a,b){return a.id!==b.id&&a.x<b.x+b.w-.001&&a.x+a.w>b.x+.001&&a.y<b.y+b.h-.001&&a.y+a.h>b.y+.001}
 
+function fixtureFor(w){return fixtures.find(f=>Math.abs(f.x1-w.x1)<.06&&Math.abs(f.y1-w.y1)<.06&&Math.abs(f.x2-w.x2)<.06&&Math.abs(f.y2-w.y2)<.06)}
+function nearestWall(p){let best=null,dist=.32;for(const w of alignedEdges()){if(w.kind==='opening')continue;const dx=w.x2-w.x1,dy=w.y2-w.y1,len2=dx*dx+dy*dy;if(len2<.5)continue;const t=Math.max(0,Math.min(1,((p.x-w.x1)*dx+(p.y-w.y1)*dy)/len2));const x=w.x1+t*dx,y=w.y1+t*dy,d=Math.hypot(x-p.x,y-p.y);if(d<dist){dist=d;best=w}}return best}
+function wallKind(w){const f=fixtureFor(w);return f?f.kind:w.kind}
 function alignedEdges(){
  const walls=[];
  const add=(x1,y1,x2,y2,kind='wall')=>walls.push({x1,y1,x2,y2,kind});
@@ -75,7 +78,7 @@ function alignedEdges(){
    }
   }
  }
- return walls;
+ return walls.map(w=>({...w,kind:wallKind(w)}));
 }
 function renderEdges2D(){
  for(const w of alignedEdges()){
@@ -117,14 +120,14 @@ if(kitchen&&garage){ctx.fillStyle='#217b57';ctx.font='bold 11px system-ui';ctx.f
 renderEdges2D();\nconst indoor=rooms.filter(r=>r.type!=='garage'&&r.type!=='utility').reduce((sum,r)=>sum+r.w*r.h,0);$('area').textContent='室內房間方塊合計約 '+(indoor/3.3058).toFixed(1)+' 坪（重疊未扣除）';if(shown3D)build3D()}
 function pos(e){const b=cv.getBoundingClientRect();return {x:(e.clientX-b.left-ox)/scale,y:(e.clientY-b.top-oy)/scale}}
 function find(p){return [...rooms].reverse().find(r=>p.x>=r.x&&p.x<=r.x+r.w&&p.y>=r.y&&p.y<=r.y+r.h)}
-cv.onpointerdown=e=>{const p=pos(e),r=find(p);selected=r?.id??null;mode=r&&p.x>r.x+r.w-.55&&p.y>r.y+r.h-.55?'size':'move';anchor={px:p.x,py:p.y,x:r?.x,y:r?.y,w:r?.w,h:r?.h};if(r)cv.setPointerCapture(e.pointerId);draw()};
+cv.onpointerdown=e=>{const p=pos(e);if(tool!=='move'){const w=nearestWall(p);if(!w){$('toolStatus').textContent='請點選粗線牆體中央，或放大瀏覽器後重試';return}const key={x1:w.x1,y1:w.y1,x2:w.x2,y2:w.y2};const old=fixtureFor(w);fixtures=fixtures.filter(f=>f!==old);if(tool!=='erase'){if(tool==='window'&&w.kind!=='wall'&&w.kind!=='window'){$('toolStatus').textContent='窗戶請放在普通牆面';return}fixtures.push({...key,kind:tool==='window'?'window':'door'})}saveLocal();draw();$('toolStatus').textContent='門窗配置已更新；可繼續點選其他牆面';return}const r=find(p);selected=r?.id??null;mode=r&&p.x>r.x+r.w-.55&&p.y>r.y+r.h-.55?'size':'move';anchor={px:p.x,py:p.y,x:r?.x,y:r?.y,w:r?.w,h:r?.h};if(r)cv.setPointerCapture(e.pointerId);draw()};
 cv.onpointermove=e=>{if(!cv.hasPointerCapture(e.pointerId)||selected==null)return;const r=rooms.find(v=>v.id===selected),p=pos(e);if(!r)return;if(mode==='size'){r.w=Math.max(1.5,snap(anchor.w+p.x-anchor.px));r.h=Math.max(1.5,snap(anchor.h+p.y-anchor.py))}else{r.x=Math.max(0,snap(anchor.x+p.x-anchor.px));r.y=Math.max(0,snap(anchor.y+p.y-anchor.py));magnetic(r)}draw()};
 cv.onpointerup=()=>saveLocal();cv.onpointercancel=()=>saveLocal();
-$('slider').onclick=()=>{slideClosed=!slideClosed;$('slider').textContent='主臥拉門：'+(slideClosed?'關閉':'開啟');draw()};
+$('slider').textContent='主臥拉門：'+(slideClosed?'關閉':'開啟');$('slider').onclick=()=>{slideClosed=!slideClosed;$('slider').textContent='主臥拉門：'+(slideClosed?'關閉':'開啟');saveLocal();draw()};for(const [id,t] of [['doorTool','door'],['windowTool','window'],['eraseTool','erase'],['moveTool','move']])$(id).onclick=()=>{tool=t;$('toolStatus').textContent=t==='move'?'房間拖曳模式':t==='door'?'點選牆面以新增／替換門洞':t==='window'?'點選普通外牆以新增窗戶':'點選已設定的門窗以移除';};
 $('del').onclick=()=>{rooms=rooms.filter(r=>r.id!==selected);selected=null;saveLocal();draw()};$('rotate').onclick=()=>{const r=rooms.find(r=>r.id===selected);if(r)[r.w,r.h]=[r.h,r.w];saveLocal();draw()};
-$('restore').onclick=()=>{if(confirm('確定載入最新農舍格局 A？會覆蓋目前積木編輯進度，請先匯出 JSON 保存。')){rooms=example();saveLocal();draw()}};
-$('save').onclick=()=>{const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify({version:1,rooms},null,2)],{type:'application/json'}));a.download='farmhouse-block-layout.json';a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000)};
-$('load').onclick=()=>$('file').click();$('file').onchange=async e=>{try{const j=JSON.parse(await e.target.files[0].text());if(!Array.isArray(j.rooms)||!j.rooms.every(r=>['x','y','w','h'].every(k=>Number.isFinite(r[k]))&&r.w>0&&r.h>0))throw Error('格式無效');rooms=j.rooms;saveLocal();draw()}catch(e){alert('匯入失敗：'+e.message)}};
+$('restore').onclick=()=>{if(confirm('確定載入最新農舍格局 A？會覆蓋目前積木編輯進度，請先匯出 JSON 保存。')){rooms=example();fixtures=[];slideClosed=false;saveLocal();draw()}};
+$('save').onclick=()=>{const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify({version:2,rooms,fixtures,slideClosed},null,2)],{type:'application/json'}));a.download='farmhouse-block-layout.json';a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000)};
+$('load').onclick=()=>$('file').click();$('file').onchange=async e=>{try{const j=JSON.parse(await e.target.files[0].text());if(!Array.isArray(j.rooms)||!j.rooms.every(r=>['x','y','w','h'].every(k=>Number.isFinite(r[k]))&&r.w>0&&r.h>0))throw Error('格式無效');rooms=j.rooms;fixtures=Array.isArray(j.fixtures)?j.fixtures:[];slideClosed=!!j.slideClosed;saveLocal();draw()}catch(e){alert('匯入失敗：'+e.message)}};
 $('shot').onclick=()=>{const a=document.createElement('a');a.href=cv.toDataURL('image/png');a.download='農舍積木平面圖.png';a.click()};
 function box(group,x,y,z,w,h,d,c){const mesh=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),new THREE.MeshStandardMaterial({color:c,roughness:.75}));mesh.position.set(x,y,z);group.add(mesh);return mesh}
 function build3D(){if(!engine)return;const {scene}=engine;while(scene.children.length)scene.remove(scene.children[0]);scene.background=new THREE.Color('#e8eff6');scene.add(new THREE.HemisphereLight(0xffffff,0x9daab3,2));const light=new THREE.DirectionalLight(0xffffff,3);light.position.set(12,20,8);scene.add(light);const g=new THREE.Group();scene.add(g);rooms.forEach(r=>{const x=r.x+r.w/2,z=r.y+r.h/2,c=colors[r.type]||'#cccccc';box(g,x,-.12,z,r.w,.24,r.h,c);const t=.12,H=r.type==='garage'?3:2.7;if(r.type==='garage'){box(g,x,.27,z,1.7,.27,3.9,'#cfd4df');box(g,x,.75,z-.55,1.5,.62,1.55,'#7895aa');for(let dx of [-.85,.85])for(let dz of [-1.25,1.25])box(g,x+dx,.28,z+dz,.2,.4,.5,'#202832')}if(r.type==='bed'||r.type==='studio'){box(g,x,.34,z,1.8,.3,2,'#dfcabb');box(g,x,.57,z-.35,1.65,.2,1.15,'#f9faf6')}if(r.type==='living'){box(g,x,.39,z,.95,.4,2.8,'#ede8e1');box(g,x+1.8,.26,z,.8,.2,1.1,'#a77a53')}if(r.type==='dining')box(g,x,.77,z,1.8,.12,.95,'#a57e59');if(r.type==='kitchen')box(g,x+r.w/2-.4,.45,z,.75,.9,r.h-.5,'#d3b49a')});alignedEdges().forEach(w=>wall3D(g,w));}
