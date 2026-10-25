@@ -37,7 +37,7 @@ export default {
     const packed=new Response(form);
     const out=await env.AI.run(MODEL,{multipart:{body:packed.body,contentType:packed.headers.get("content-type")}});
     let b64;
-    if(out&&typeof out.image==="string")b64=out.image.replace(/^data:image\\/[^;]+;base64,/,"");
+    if(out&&typeof out.image==="string")b64=out.image.includes(",")?out.image.split(",").pop():out.image;
     else if(out&&typeof out.getReader==="function")b64=await imageBase64(out);
     else throw new Error("Unexpected FLUX output: "+JSON.stringify(out).slice(0,180));
     return reply({image:"data:image/png;base64,"+b64,model:MODEL});
