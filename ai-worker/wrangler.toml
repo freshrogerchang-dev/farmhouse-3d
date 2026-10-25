@@ -2,3 +2,6 @@ name = "farmhouse-ai-render"
 main = "src/index.js"
 compatibility_date = "2026-10-25"
 workers_dev = true
+
+[ai]
+binding = "AI"
