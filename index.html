@@ -283,7 +283,7 @@ const aiStatus=t=>$('aiStatus').textContent=t;
 function captureAICamera(){
  if(!renderer)throw Error('3D 尚未載入');
  renderer.render(scene,camera);
- const source=renderer.domElement;const c=document.createElement('canvas');const factor=Math.min(1,768/Math.max(source.width,source.height));c.width=Math.max(128,Math.round(source.width*factor));c.height=Math.max(128,Math.round(source.height*factor));c.getContext('2d').drawImage(source,0,0,c.width,c.height);aiImageData=c.toDataURL('image/png');
+ const source=renderer.domElement;const c=document.createElement('canvas');const factor=Math.min(1,480/Math.max(source.width,source.height));c.width=Math.max(128,Math.round(source.width*factor));c.height=Math.max(128,Math.round(source.height*factor));c.getContext('2d').drawImage(source,0,0,c.width,c.height);aiImageData=c.toDataURL('image/png');
  $('aiPreview').src=aiImageData;$('aiPreview').style.display='block';
  aiStatus('已擷取目前的 3D 視角，可下載或生成實景。');
 }
