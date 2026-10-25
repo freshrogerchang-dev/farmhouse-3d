@@ -65,7 +65,7 @@ function alignedEdges(){
     const isGarageDoor=partner&&([r.type,partner.type].includes('garage')&&[r.type,partner.type].includes('kitchen'));
     const isStudio=partner&&[r.type,partner.type].includes('studio');
     const isCommon=partner&&[r.type,partner.type].includes('bath');
-    let kind=isGarageDoor?'garage-door':isStudio?'slider':isCommon?'door':'wall';
+    let kind=isGarageDoor?'garage-door':isStudio?'slider':isCommon?'door':!shared&&b-a>2.6&&side==='top'&&['bed','living','kitchen','studio','dining'].includes(r.type)?'window':'wall';
     if(kind==='slider'&&!slideClosed)kind='opening';
     const margin=(b-a)*.5,doorHalf=Math.min(.48,(b-a)*.3);
     const splitDoor=(kind!=='wall'&&kind!=='opening'&&b-a>1.2);
@@ -80,14 +80,28 @@ function alignedEdges(){
 function renderEdges2D(){
  for(const w of alignedEdges()){
   const x1=ox+w.x1*scale,y1=oy+w.y1*scale,x2=ox+w.x2*scale,y2=oy+w.y2*scale;
-  ctx.strokeStyle=w.kind==='slider'?'#237f9e':w.kind==='garage-door'?'#22835b':w.kind==='door'?'#b7863f':w.kind==='opening'?'#87bfb5':'#465765';
-  ctx.lineWidth=w.kind==='wall'?4:3;ctx.setLineDash(w.kind==='slider'?[6,3]:w.kind==='opening'?[2,5]:[]);
+  ctx.strokeStyle=w.kind==='window'?'#60accb':w.kind==='slider'?'#237f9e':w.kind==='garage-door'?'#22835b':w.kind==='door'?'#b7863f':w.kind==='opening'?'#87bfb5':'#465765';
+  ctx.lineWidth=w.kind==='wall'?4:3;ctx.setLineDash(w.kind==='window'?[8,3]:w.kind==='slider'?[6,3]:w.kind==='opening'?[2,5]:[]);
   ctx.beginPath();ctx.moveTo(x1,y1);ctx.lineTo(x2,y2);ctx.stroke();ctx.setLineDash([]);
  }
 }
 function wall3D(g,w){
  const mx=(w.x1+w.x2)/2,mz=(w.y1+w.y2)/2,len=Math.hypot(w.x2-w.x1,w.y2-w.y1);
  if(w.kind==='opening'||w.kind==='garage-door'||w.kind==='door')return;
+ if(w.kind==='window'){
+  const vertical=Math.abs(w.x2-w.x1)<.01;
+  const splitLen=Math.min(1.65,len*.53),remaining=(len-splitLen)/2;
+  const along=(offset)=>vertical?[mx,mz+offset]:[mx+offset,mz];
+  for(const delta of [-(splitLen+remaining)/2,(splitLen+remaining)/2]){
+   const [px,pz]=along(delta),piece=box(g,px,1.35,pz,remaining,2.7,.14,'#eee9df');
+   if(vertical)piece.rotation.y=Math.PI/2;
+  }
+  for(const [midHeight,pieceHeight] of [[.43,.86],[2.36,.68]]){
+   const pane=box(g,mx,midHeight,mz,splitLen,pieceHeight,.14,'#eee9df');if(vertical)pane.rotation.y=Math.PI/2;
+  }
+  const glass=box(g,mx,1.64,mz,splitLen-.12,1.65,.055,'#a6d5df');if(vertical)glass.rotation.y=Math.PI/2;
+  return;
+ }
  if(w.kind==='slider'&&!slideClosed)return;
  if(w.kind==='slider'){const mesh=box(g,mx,1.27,mz,Math.max(.05,len),2.5,.065,'#a4c4cf');if(Math.abs(w.x2-w.x1)<.01){mesh.rotation.y=Math.PI/2}return}
  const mesh=box(g,mx,1.35,mz,len,2.7,.14,'#edeae2');
