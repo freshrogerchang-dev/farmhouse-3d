@@ -28,6 +28,16 @@ const cv=$('plan'),ctx=cv.getContext('2d');let scale=30,ox=16,oy=16;
 const snap=v=>Math.round(v/grid)*grid;
 function extent(){let x=Math.max(20,...rooms.map(r=>r.x+r.w+1)),y=Math.max(14,...rooms.map(r=>r.y+r.h+1));const w=cv.clientWidth,h=cv.clientHeight;scale=Math.max(12,Math.min((w-30)/x,(h-30)/y,36));ox=15;oy=15}
 function resize(){let dpr=devicePixelRatio||1;cv.width=Math.round(cv.clientWidth*dpr);cv.height=Math.round(cv.clientHeight*dpr);ctx.setTransform(dpr,0,0,dpr,0,0);draw()}
+function magnetic(r){
+ const threshold=.3;
+ for(const other of rooms){if(other===r)continue;
+  const yOverlap=Math.min(r.y+r.h,other.y+other.h)-Math.max(r.y,other.y);
+  const xOverlap=Math.min(r.x+r.w,other.x+other.w)-Math.max(r.x,other.x);
+  if(yOverlap>.5){if(Math.abs(r.x+r.w-other.x)<threshold)r.x=other.x-r.w;else if(Math.abs(r.x-other.x-other.w)<threshold)r.x=other.x+other.w}
+  if(xOverlap>.5){if(Math.abs(r.y+r.h-other.y)<threshold)r.y=other.y-r.h;else if(Math.abs(r.y-other.y-other.h)<threshold)r.y=other.y+other.h}
+ }
+ r.x=Math.max(0,r.x);r.y=Math.max(0,r.y);
+}
 function overlap(a,b){return a.id!==b.id&&a.x<b.x+b.w-.001&&a.x+a.w>b.x+.001&&a.y<b.y+b.h-.001&&a.y+a.h>b.y+.001}
 
 function alignedEdges(){
@@ -94,7 +104,7 @@ renderEdges2D();\nconst indoor=rooms.filter(r=>r.type!=='garage'&&r.type!=='util
 function pos(e){const b=cv.getBoundingClientRect();return {x:(e.clientX-b.left-ox)/scale,y:(e.clientY-b.top-oy)/scale}}
 function find(p){return [...rooms].reverse().find(r=>p.x>=r.x&&p.x<=r.x+r.w&&p.y>=r.y&&p.y<=r.y+r.h)}
 cv.onpointerdown=e=>{const p=pos(e),r=find(p);selected=r?.id??null;mode=r&&p.x>r.x+r.w-.55&&p.y>r.y+r.h-.55?'size':'move';anchor={px:p.x,py:p.y,x:r?.x,y:r?.y,w:r?.w,h:r?.h};if(r)cv.setPointerCapture(e.pointerId);draw()};
-cv.onpointermove=e=>{if(!cv.hasPointerCapture(e.pointerId)||selected==null)return;const r=rooms.find(v=>v.id===selected),p=pos(e);if(!r)return;if(mode==='size'){r.w=Math.max(1.5,snap(anchor.w+p.x-anchor.px));r.h=Math.max(1.5,snap(anchor.h+p.y-anchor.py))}else{r.x=Math.max(0,snap(anchor.x+p.x-anchor.px));r.y=Math.max(0,snap(anchor.y+p.y-anchor.py))}draw()};
+cv.onpointermove=e=>{if(!cv.hasPointerCapture(e.pointerId)||selected==null)return;const r=rooms.find(v=>v.id===selected),p=pos(e);if(!r)return;if(mode==='size'){r.w=Math.max(1.5,snap(anchor.w+p.x-anchor.px));r.h=Math.max(1.5,snap(anchor.h+p.y-anchor.py))}else{r.x=Math.max(0,snap(anchor.x+p.x-anchor.px));r.y=Math.max(0,snap(anchor.y+p.y-anchor.py));magnetic(r)}draw()};
 cv.onpointerup=()=>saveLocal();cv.onpointercancel=()=>saveLocal();
 $('slider').onclick=()=>{slideClosed=!slideClosed;$('slider').textContent='主臥拉門：'+(slideClosed?'關閉':'開啟');draw()};
 $('del').onclick=()=>{rooms=rooms.filter(r=>r.id!==selected);selected=null;saveLocal();draw()};$('rotate').onclick=()=>{const r=rooms.find(r=>r.id===selected);if(r)[r.w,r.h]=[r.h,r.w];saveLocal();draw()};
