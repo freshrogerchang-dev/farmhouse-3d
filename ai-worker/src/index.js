@@ -1,5 +1,5 @@
 const ORIGIN = "https://freshrogerchang-dev.github.io";
-const MODEL = "@cf/runwayml/stable-diffusion-v1-5-img2img";
+const MODEL = "@cf/black-forest-labs/flux-2-klein-4b";
 const cors = {"Access-Control-Allow-Origin": ORIGIN,"Access-Control-Allow-Methods":"GET, POST, OPTIONS","Access-Control-Allow-Headers":"Content-Type, X-Render-Key","Vary":"Origin"};
 const reply=(body,status=200)=>new Response(JSON.stringify(body),{status,headers:{...cors,"Content-Type":"application/json","Cache-Control":"no-store"}});
 const rooms=new Set(["客廳與餐廳","主臥室","廚房","衛浴","農舍外觀"]);
@@ -29,9 +29,18 @@ export default {
   if(!env.AI)return reply({error:"AI binding is not deployed"},503);
   const prompt=`Photorealistic architectural interior photograph, transform the provided 3D reference image, room ${room}, ${style} interior design, ${lighting}. Preserve the reference camera position, architecture, furniture placement, doors and windows as closely as possible. Realistic materials, high quality details, natural illumination, no text or watermarks.`;
   try {
-    const out=await env.AI.run(MODEL,{image_b64:image.slice(image.indexOf(",")+1),prompt,negative_prompt:"text, watermark, extra walls, changed windows, distorted doors, extra rooms, cartoon, diagram",strength:0.54,guidance:7.5,num_steps:16});
-    if(!out||typeof out.getReader!=="function")throw new Error("Model returned an unexpected response");
-    return reply({image:"data:image/png;base64,"+await imageBase64(out),model:MODEL});
+    const bytes=Uint8Array.from(atob(image.slice(image.indexOf(",")+1)),c=>c.charCodeAt(0));
+    const form=new FormData();
+    form.append("prompt",prompt+" Use image 0 as the reference image and preserve the depicted room.");
+    form.append("input_image_0",new Blob([bytes],{type:"image/png"}),"room.png");
+    form.append("width","1024");form.append("height","768");
+    const packed=new Response(form);
+    const out=await env.AI.run(MODEL,{multipart:{body:packed.body,contentType:packed.headers.get("content-type")}});
+    let b64;
+    if(out&&typeof out.image==="string")b64=out.image.replace(/^data:image\\/[^;]+;base64,/,"");
+    else if(out&&typeof out.getReader==="function")b64=await imageBase64(out);
+    else throw new Error("Unexpected FLUX output: "+JSON.stringify(out).slice(0,180));
+    return reply({image:"data:image/png;base64,"+b64,model:MODEL});
   }catch(e){return reply({error:"Workers AI render failed",detail:String(e?.message||e).slice(0,300)},502)}
  }
 };
