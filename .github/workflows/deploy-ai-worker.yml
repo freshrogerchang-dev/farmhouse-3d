@@ -1,5 +1,4 @@
 name: Deploy AI Render Worker
-# Re-trigger after Cloudflare API token permissions updated
 on:
   workflow_dispatch:
   push:
@@ -20,3 +19,4 @@ jobs:
           accountId: ${{ secrets.CLOUDFLARE_ID }}
           workingDirectory: ai-worker
           command: deploy
+# Retry with updated Workers AI and Workers Scripts permissions
