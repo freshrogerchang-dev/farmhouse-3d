@@ -1,7 +1,7 @@
-<!doctype html><html lang="zh-Hant"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>農舍房間積木編輯器 v2</title><style>
+<!doctype html><html lang="zh-Hant"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>農舍房間積木編輯器 B1</title><style>
 *{box-sizing:border-box}body{margin:0;font-family:system-ui,"Noto Sans TC",sans-serif;background:#eef2f5;color:#233042}header{padding:16px 20px;background:white;display:flex;justify-content:space-between;gap:12px;align-items:center;flex-wrap:wrap}header h2{margin:0;font-size:20px}main{display:grid;grid-template-columns:245px 1fr;min-height:calc(100vh - 76px)}aside{padding:16px;background:white;border-right:1px solid #dce1e9}button,select{border:1px solid #c7d0d9;background:white;padding:11px;border-radius:9px;cursor:pointer;font:inherit}button:hover{background:#e9f3ff}.primary{background:#2463d9;color:white}aside button{width:100%;margin:4px 0;text-align:left}.stage{padding:15px;min-width:0}.bar{display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap}.panel{background:white;border:1px solid #dde3e9;border-radius:12px;overflow:hidden;position:relative}#plan{width:100%;height:580px;display:block;touch-action:none;cursor:grab;background:#fafcfd}#view{height:580px;display:none;background:#dfe9ef}.hint{font-size:13px;color:#68798a;line-height:1.7}.selected{outline:2px solid #367ce8}.tag{font-size:12px;background:#e1f1e7;border-radius:99px;padding:5px 8px}footer{font-size:12px;margin-top:10px;color:#75818e}@media(max-width:760px){main{grid-template-columns:1fr}aside{display:block;border-bottom:1px solid #ddd}#plan,#view{height:460px}.stage{padding:8px}}</style></head><body>
 <header><div><h2>🏡 農舍房間積木編輯器 <span class="tag">最新版格局 A</span></h2><div class="hint">左下主臥工作室拉門・雙臥共衛・右側第二衛浴・車庫接廚房</div></div><a href="./">返回原本 3D + AI 渲染網站</a></header>
-<main><aside><h3>新增積木</h3><div id="add"></div><hr><p class="hint">先點新增房間，再直接拖動；選取房間後拖曳<strong>右下角藍點</strong>改變大小。每格為 0.5 公尺，拖移會自動吸附。</p><button id="del">刪除選取房間</button><button id="rotate">旋轉房間 90°</button><button id="slider">主臥拉門：開啟</button><hr><button id="restore">載入最新格局 A</button><button id="save">匯出 JSON</button><button id="load">匯入 JSON</button><input hidden id="file" type="file" accept=".json,application/json"><p class="hint">圖塊可以任意組合；重疊會標紅提示。這是可編輯概念格局；主臥可用拉門切換開放／獨立。牆線與門窗尚未達施工圖精度。</p></aside><section class="stage"><div class="bar"><button id="two" class="primary">2D 積木</button><button id="three">3D 預覽</button><button id="shot">下載平面圖</button><span id="area" class="hint"></span></div><div class="panel"><canvas id="plan"></canvas><div id="view"></div></div><footer>保存在瀏覽器內的編輯進度僅供概念規劃；實際建築面積、開窗、車庫出入口與消防安全仍需專業設計確認。</footer></section></main>
+<main><aside><h3>新增積木</h3><div id="add"></div><hr><p class="hint">先點新增房間，再直接拖動；選取房間後拖曳<strong>右下角藍點</strong>改變大小。每格為 0.5 公尺，拖移會自動吸附。</p><button id="del">刪除選取房間</button><button id="rotate">旋轉房間 90°</button><button id="slider">主臥拉門：開啟</button><hr><button id="restore">載入最新格局 A</button><button id="save">匯出 JSON</button><button id="load">匯入 JSON</button><input hidden id="file" type="file" accept=".json,application/json"><p class="hint">圖塊可以任意組合；重疊會標紅提示。這是可編輯概念格局；主臥可用拉門切換開放／獨立。相鄰房間自動合併共用牆，主臥拉門與部分衛浴門、廚房通車庫門示意；開窗仍待細化，不代表施工圖。</p></aside><section class="stage"><div class="bar"><button id="two" class="primary">2D 積木</button><button id="three">3D 預覽</button><button id="shot">下載平面圖</button><span id="area" class="hint"></span></div><div class="panel"><canvas id="plan"></canvas><div id="view"></div></div><footer>保存在瀏覽器內的編輯進度僅供概念規劃；實際建築面積、開窗、車庫出入口與消防安全仍需專業設計確認。</footer></section></main>
 <script type="module">
 import * as THREE from 'https://esm.sh/three@0.175.0';
 import {OrbitControls} from 'https://esm.sh/three@0.175.0/examples/jsm/controls/OrbitControls.js';
@@ -29,14 +29,68 @@ const snap=v=>Math.round(v/grid)*grid;
 function extent(){let x=Math.max(20,...rooms.map(r=>r.x+r.w+1)),y=Math.max(14,...rooms.map(r=>r.y+r.h+1));const w=cv.clientWidth,h=cv.clientHeight;scale=Math.max(12,Math.min((w-30)/x,(h-30)/y,36));ox=15;oy=15}
 function resize(){let dpr=devicePixelRatio||1;cv.width=Math.round(cv.clientWidth*dpr);cv.height=Math.round(cv.clientHeight*dpr);ctx.setTransform(dpr,0,0,dpr,0,0);draw()}
 function overlap(a,b){return a.id!==b.id&&a.x<b.x+b.w-.001&&a.x+a.w>b.x+.001&&a.y<b.y+b.h-.001&&a.y+a.h>b.y+.001}
-function draw(){extent();const w=cv.clientWidth,h=cv.clientHeight;ctx.clearRect(0,0,w,h);ctx.lineWidth=1;ctx.strokeStyle='#edf0f3';for(let x=ox;x<w;x+=scale*.5){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,h);ctx.stroke()}for(let y=oy;y<h;y+=scale*.5){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(w,y);ctx.stroke()}
+
+function alignedEdges(){
+ const walls=[];
+ const add=(x1,y1,x2,y2,kind='wall')=>walls.push({x1,y1,x2,y2,kind});
+ const epsilon=.035;
+ const segments=[];
+ for(const r of rooms){
+  for(const [side,x1,y1,x2,y2] of [['top',r.x,r.y,r.x+r.w,r.y],['bottom',r.x,r.y+r.h,r.x+r.w,r.y+r.h],['left',r.x,r.y,r.x,r.y+r.h],['right',r.x+r.w,r.y,r.x+r.w,r.y+r.h]]){
+   const vertical=side==='left'||side==='right',start=vertical?y1:x1,end=vertical?y2:x2,constant=vertical?x1:y1;
+   const contacts=[];
+   for(const other of rooms){
+    if(other===r)continue;
+    const mate=side==='left'?other.x+other.w:side==='right'?other.x:side==='top'?other.y+other.h:other.y;
+    if(Math.abs(constant-mate)>epsilon)continue;
+    const lo=Math.max(start,vertical?other.y:other.x),hi=Math.min(end,vertical?other.y+other.h:other.x+other.w);
+    if(hi-lo>.15)contacts.push({lo,hi,other});
+   }
+   const stops=[start,end,...contacts.flatMap(c=>[c.lo,c.hi])].sort((a,b)=>a-b);
+   for(let i=0;i<stops.length-1;i++){
+    const a=stops[i],b=stops[i+1];if(b-a<.02)continue;
+    const shared=contacts.find(c=>a>=c.lo-epsilon&&b<=c.hi+epsilon);
+    if(shared&&Number(r.id)>Number(shared.other.id))continue;
+    const partner=shared?.other;
+    const isGarageDoor=partner&&([r.type,partner.type].includes('garage')&&[r.type,partner.type].includes('kitchen'));
+    const isStudio=partner&&[r.type,partner.type].includes('studio');
+    const isCommon=partner&&[r.type,partner.type].includes('bath');
+    let kind=isGarageDoor?'garage-door':isStudio?'slider':isCommon?'door':'wall';
+    if(kind==='slider'&&!slideClosed)kind='opening';
+    const margin=(b-a)*.5,doorHalf=Math.min(.48,(b-a)*.3);
+    const splitDoor=(kind!=='wall'&&kind!=='opening'&&b-a>1.2);
+    const coords=(u,v)=>vertical?[constant,u,constant,v]:[u,constant,v,constant];
+    if(splitDoor){add(...coords(a,a+margin-doorHalf));add(...coords(a+margin+doorHalf,b));add(...coords(a+margin-doorHalf,a+margin+doorHalf),kind)}
+    else add(...coords(a,b),kind);
+   }
+  }
+ }
+ return walls;
+}
+function renderEdges2D(){
+ for(const w of alignedEdges()){
+  const x1=ox+w.x1*scale,y1=oy+w.y1*scale,x2=ox+w.x2*scale,y2=oy+w.y2*scale;
+  ctx.strokeStyle=w.kind==='slider'?'#237f9e':w.kind==='garage-door'?'#22835b':w.kind==='door'?'#b7863f':w.kind==='opening'?'#87bfb5':'#465765';
+  ctx.lineWidth=w.kind==='wall'?4:3;ctx.setLineDash(w.kind==='slider'?[6,3]:w.kind==='opening'?[2,5]:[]);
+  ctx.beginPath();ctx.moveTo(x1,y1);ctx.lineTo(x2,y2);ctx.stroke();ctx.setLineDash([]);
+ }
+}
+function wall3D(g,w){
+ const mx=(w.x1+w.x2)/2,mz=(w.y1+w.y2)/2,len=Math.hypot(w.x2-w.x1,w.y2-w.y1);
+ if(w.kind==='opening'||w.kind==='garage-door'||w.kind==='door')return;
+ if(w.kind==='slider'&&!slideClosed)return;
+ if(w.kind==='slider'){const mesh=box(g,mx,1.27,mz,Math.max(.05,len),2.5,.065,'#a4c4cf');if(Math.abs(w.x2-w.x1)<.01){mesh.rotation.y=Math.PI/2}return}
+ const mesh=box(g,mx,1.35,mz,len,2.7,.14,'#edeae2');
+ if(Math.abs(w.x2-w.x1)<.01)mesh.rotation.y=Math.PI/2;
+}
+\nfunction draw(){extent();const w=cv.clientWidth,h=cv.clientHeight;ctx.clearRect(0,0,w,h);ctx.lineWidth=1;ctx.strokeStyle='#edf0f3';for(let x=ox;x<w;x+=scale*.5){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,h);ctx.stroke()}for(let y=oy;y<h;y+=scale*.5){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(w,y);ctx.stroke()}
 rooms.forEach(r=>{const x=ox+r.x*scale,y=oy+r.y*scale,ww=r.w*scale,hh=r.h*scale,bad=rooms.some(t=>overlap(r,t));ctx.fillStyle=colors[r.type]||'#ddd';ctx.fillRect(x,y,ww,hh);ctx.strokeStyle=bad?'#c43e50':r.id===selected?'#215ed1':'#556c79';ctx.lineWidth=r.id===selected?3:2;ctx.strokeRect(x,y,ww,hh);ctx.fillStyle='#26384a';ctx.textAlign='center';ctx.font='bold 13px system-ui';ctx.fillText(r.name,x+ww/2,y+hh/2-2,Math.max(30,ww-8));ctx.font='11px system-ui';ctx.fillText((r.w*r.h/3.3058).toFixed(1)+'坪',x+ww/2,y+hh/2+16);if(r.id===selected){ctx.fillStyle='#216de3';ctx.fillRect(x+ww-11,y+hh-11,11,11)}});
 // Render a sliding partition on the east side of the flexible studio, plus the kitchen-to-garage access.
 const studio=rooms.find(r=>r.type==='studio');
 if(studio){const px=ox+(studio.x+studio.w)*scale,py=oy+(studio.y+studio.h*.22)*scale,ph=studio.h*.56*scale;ctx.lineWidth=slideClosed?7:4;ctx.strokeStyle=slideClosed?'#597887':'#52a4b4';ctx.setLineDash(slideClosed?[]:[9,6]);ctx.beginPath();ctx.moveTo(px,py);ctx.lineTo(px,py+ph);ctx.stroke();ctx.setLineDash([]);ctx.font='11px system-ui';ctx.textAlign='left';ctx.fillStyle='#397486';ctx.fillText(slideClosed?'拉門關閉':'拉門收起',px+6,py+12)}
 const kitchen=rooms.find(r=>r.type==='kitchen'),garage=rooms.find(r=>r.type==='garage');
 if(kitchen&&garage){ctx.fillStyle='#217b57';ctx.font='bold 11px system-ui';ctx.fillText('↗ 車庫連通門',ox+(kitchen.x+kitchen.w*.44)*scale,oy+(kitchen.y+kitchen.h*.78)*scale)}
-const indoor=rooms.filter(r=>r.type!=='garage'&&r.type!=='utility').reduce((sum,r)=>sum+r.w*r.h,0);$('area').textContent='室內房間方塊合計約 '+(indoor/3.3058).toFixed(1)+' 坪（重疊未扣除）';if(shown3D)build3D()}
+renderEdges2D();\nconst indoor=rooms.filter(r=>r.type!=='garage'&&r.type!=='utility').reduce((sum,r)=>sum+r.w*r.h,0);$('area').textContent='室內房間方塊合計約 '+(indoor/3.3058).toFixed(1)+' 坪（重疊未扣除）';if(shown3D)build3D()}
 function pos(e){const b=cv.getBoundingClientRect();return {x:(e.clientX-b.left-ox)/scale,y:(e.clientY-b.top-oy)/scale}}
 function find(p){return [...rooms].reverse().find(r=>p.x>=r.x&&p.x<=r.x+r.w&&p.y>=r.y&&p.y<=r.y+r.h)}
 cv.onpointerdown=e=>{const p=pos(e),r=find(p);selected=r?.id??null;mode=r&&p.x>r.x+r.w-.55&&p.y>r.y+r.h-.55?'size':'move';anchor={px:p.x,py:p.y,x:r?.x,y:r?.y,w:r?.w,h:r?.h};if(r)cv.setPointerCapture(e.pointerId);draw()};
@@ -49,7 +103,7 @@ $('save').onclick=()=>{const a=document.createElement('a');a.href=URL.createObje
 $('load').onclick=()=>$('file').click();$('file').onchange=async e=>{try{const j=JSON.parse(await e.target.files[0].text());if(!Array.isArray(j.rooms)||!j.rooms.every(r=>['x','y','w','h'].every(k=>Number.isFinite(r[k]))&&r.w>0&&r.h>0))throw Error('格式無效');rooms=j.rooms;saveLocal();draw()}catch(e){alert('匯入失敗：'+e.message)}};
 $('shot').onclick=()=>{const a=document.createElement('a');a.href=cv.toDataURL('image/png');a.download='農舍積木平面圖.png';a.click()};
 function box(group,x,y,z,w,h,d,c){const mesh=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),new THREE.MeshStandardMaterial({color:c,roughness:.75}));mesh.position.set(x,y,z);group.add(mesh);return mesh}
-function build3D(){if(!engine)return;const {scene}=engine;while(scene.children.length)scene.remove(scene.children[0]);scene.background=new THREE.Color('#e8eff6');scene.add(new THREE.HemisphereLight(0xffffff,0x9daab3,2));const light=new THREE.DirectionalLight(0xffffff,3);light.position.set(12,20,8);scene.add(light);const g=new THREE.Group();scene.add(g);rooms.forEach(r=>{const x=r.x+r.w/2,z=r.y+r.h/2,c=colors[r.type]||'#cccccc';box(g,x,-.12,z,r.w,.24,r.h,c);const t=.12,H=r.type==='garage'?3:2.7;[[x,z-r.h/2,r.w,t],[x,z+r.h/2,r.w,t],[x-r.w/2,z,t,r.h],[x+r.w/2,z,t,r.h]].forEach(([ax,az,aw,ad])=>box(g,ax,H*.5,az,aw,H,ad,'#f0eee6'));if(r.type==='studio'){const edge=r.x+r.w;if(slideClosed)box(g,edge,1.22,z,.065,2.45,Math.max(1.2,r.h*.7),'#b2c4c5');else{box(g,edge,1.24,z-r.h*.28,.12,2.45,.2,'#b2c4c5');box(g,edge,1.24,z-r.h*.17,.12,2.45,.2,'#b2c4c5')}}if(r.type==='garage'){box(g,x,.27,z,1.7,.27,3.9,'#cfd4df');box(g,x,.75,z-.55,1.5,.62,1.55,'#7895aa');for(let dx of [-.85,.85])for(let dz of [-1.25,1.25])box(g,x+dx,.28,z+dz,.2,.4,.5,'#202832')}if(r.type==='bed'||r.type==='studio'){box(g,x,.34,z,1.8,.3,2,'#dfcabb');box(g,x,.57,z-.35,1.65,.2,1.15,'#f9faf6')}if(r.type==='living'){box(g,x,.39,z,.95,.4,2.8,'#ede8e1');box(g,x+1.8,.26,z,.8,.2,1.1,'#a77a53')}if(r.type==='dining')box(g,x,.77,z,1.8,.12,.95,'#a57e59');if(r.type==='kitchen')box(g,x+r.w/2-.4,.45,z,.75,.9,r.h-.5,'#d3b49a')});}
+function build3D(){if(!engine)return;const {scene}=engine;while(scene.children.length)scene.remove(scene.children[0]);scene.background=new THREE.Color('#e8eff6');scene.add(new THREE.HemisphereLight(0xffffff,0x9daab3,2));const light=new THREE.DirectionalLight(0xffffff,3);light.position.set(12,20,8);scene.add(light);const g=new THREE.Group();scene.add(g);rooms.forEach(r=>{const x=r.x+r.w/2,z=r.y+r.h/2,c=colors[r.type]||'#cccccc';box(g,x,-.12,z,r.w,.24,r.h,c);const t=.12,H=r.type==='garage'?3:2.7;if(r.type==='garage'){box(g,x,.27,z,1.7,.27,3.9,'#cfd4df');box(g,x,.75,z-.55,1.5,.62,1.55,'#7895aa');for(let dx of [-.85,.85])for(let dz of [-1.25,1.25])box(g,x+dx,.28,z+dz,.2,.4,.5,'#202832')}if(r.type==='bed'||r.type==='studio'){box(g,x,.34,z,1.8,.3,2,'#dfcabb');box(g,x,.57,z-.35,1.65,.2,1.15,'#f9faf6')}if(r.type==='living'){box(g,x,.39,z,.95,.4,2.8,'#ede8e1');box(g,x+1.8,.26,z,.8,.2,1.1,'#a77a53')}if(r.type==='dining')box(g,x,.77,z,1.8,.12,.95,'#a57e59');if(r.type==='kitchen')box(g,x+r.w/2-.4,.45,z,.75,.9,r.h-.5,'#d3b49a')});alignedEdges().forEach(w=>wall3D(g,w));}
 function start3D(){if(engine)return;let el=$('view');const scene=new THREE.Scene(),camera=new THREE.PerspectiveCamera(45,el.clientWidth/el.clientHeight,.1,200);camera.position.set(26,25,28);const renderer=new THREE.WebGLRenderer({antialias:true,preserveDrawingBuffer:true});renderer.setSize(el.clientWidth,el.clientHeight);renderer.setPixelRatio(Math.min(devicePixelRatio,2));el.appendChild(renderer.domElement);const controls=new OrbitControls(camera,renderer.domElement);controls.target.set(9,0,7);controls.update();engine={scene,camera,renderer,controls};build3D();function animate(){requestAnimationFrame(animate);if(shown3D){controls.update();renderer.render(scene,camera)}}animate();new ResizeObserver(()=>{if(el.clientWidth){camera.aspect=el.clientWidth/el.clientHeight;camera.updateProjectionMatrix();renderer.setSize(el.clientWidth,el.clientHeight)}}).observe(el)}
 $('three').onclick=()=>{shown3D=true;$('plan').style.display='none';$('view').style.display='block';$('three').className='primary';$('two').className='';start3D();draw()};
 $('two').onclick=()=>{shown3D=false;$('plan').style.display='block';$('view').style.display='none';$('two').className='primary';$('three').className='';resize()};
