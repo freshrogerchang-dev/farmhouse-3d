@@ -23,15 +23,23 @@ export default {
   const length=Number(req.headers.get("Content-Length")||0);
   if(length>2_900_000)return reply({error:"Image request too large"},413);
   let input;try{input=await req.json()}catch{return reply({error:"Invalid JSON"},400)}
-  const {room,style,lighting,image}=input||{};
+  const {room,style,lighting,image,realism}=input||{};
   if(!rooms.has(room)||!styles.has(style)||!lights.has(lighting))return reply({error:"Invalid room, style or lighting"},400);
   if(typeof image!=="string"||image.length>2_900_000||!/^data:image\/png;base64,[A-Za-z0-9+/=]+$/.test(image))return reply({error:"Send PNG screenshot no larger than 2.9MB"},400);
   if(!env.AI)return reply({error:"AI binding is not deployed"},503);
-  const prompt=`Photorealistic architectural interior photograph, transform the provided 3D reference image, room ${room}, ${style} interior design, ${lighting}. STRICT IMAGE-TO-IMAGE EDIT of the exact provided screenshot. The screenshot defines the complete visible field of view and the frame boundaries. Do not zoom out, pan, widen field of view, expand the room, or show anything outside the supplied image. Keep the original camera perspective, number and position of visible furniture, doors, windows and walls. Do not introduce any new side objects, surrounding decorations, extra rooms, plants or furniture. Only replace flat 3D materials with realistic surface textures and improve the existing lighting. Photorealistic materials and shadows; no text or watermarks.`;
+  if(realism!==undefined&&!["photographic","balanced","strict"].includes(realism))return reply({error:"Invalid realism preset"},400);
+  const fidelity=realism||"photographic";
+  const geometry="Use the input image 0 as the camera framing and architectural composition. Preserve the location and proportions of visible walls, windows and doors, and the room's camera perspective. Do not zoom out or show adjacent rooms, exterior scenery, user interface, or content beyond the image boundaries.";
+  const realismInstruction=fidelity==="strict"
+    ?"Create a convincing real estate photograph, preserving furniture layout, while improving every material and all lighting substantially. Replace primitive flat furniture with realistic equivalents."
+    :fidelity==="balanced"
+    ?"Turn this recognizable 3D visualization into an authentic interior photography shot. Replace blocky low-poly furniture with physically believable real-world furniture of the same general type, scale and placement. Use natural wood grain, textured fabric, realistic glass and ceramic, indirect daylight, rich shadow gradients, lens and exposure realism."
+    :"CRITICAL: This is NOT a 3D render. Completely transform the plastic, cartoonish, miniature, low-poly source into a convincing photograph of a real built house, as if shot with a professional full-frame interior photography camera. The reference dictates ONLY composition, space boundaries, window and door placement and approximate furniture positions. Reimagine all model-looking furniture as realistic manufactured sofas, dining tables, beds and cabinetry with believable joinery, upholstery seams, fabric texture, natural proportions and fine details. Replace ALL flat colored shapes, block-like placeholders and computer-generated surfaces with authentic plaster, oak veneer, stone, glass, textiles and physically plausible reflections. Use soft global illumination, natural daylight falloff, contact shadows, photographic color grading and realistic optical depth. Professional high-end architectural interior photography, unmistakably a real photograph.";
+  const prompt=`${geometry} Room: ${room}. Aesthetic: ${style}. Time/lighting: ${lighting}. ${realismInstruction} No text, watermarks, UI, sketch strokes, 3D wireframes or extraneous adjoining objects.`;
   try {
     const bytes=Uint8Array.from(atob(image.slice(image.indexOf(",")+1)),c=>c.charCodeAt(0));
     const form=new FormData();
-    form.append("prompt",prompt+" Use image 0 as a strict composition and geometry reference. Keep the same crop and only the objects visible in image 0; do not invent content beyond its edges.");
+    form.append("prompt",prompt);
     form.append("input_image_0",new Blob([bytes],{type:"image/png"}),"room.png");
     form.append("width","1024");form.append("height","768");
     const packed=new Response(form);
